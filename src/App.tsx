@@ -1,7 +1,7 @@
-import { NavLink, Route, Routes } from 'react-router-dom'
-import { IntroPage } from './pages/IntroPage.tsx'
-import { MenuPage } from './pages/MenuPage.tsx'
-import { PuzzlePage } from './pages/PuzzlePage.tsx'
+import { NavLink, Route, Routes } from 'react-router-dom';
+import { IntroPage } from './pages/IntroPage.tsx';
+import { MenuPage } from './pages/MenuPage.tsx';
+import { PuzzlePage } from './pages/PuzzlePage.tsx';
 
 export default function App() {
   return (
@@ -34,5 +34,5 @@ export default function App() {
         </Routes>
       </main>
     </>
-  )
+  );
 }

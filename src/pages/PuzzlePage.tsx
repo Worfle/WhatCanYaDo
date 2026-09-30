@@ -1,17 +1,17 @@
-import { useEffect, useRef } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { markPuzzleSolved, useSolvedIds } from '../progress/progress.ts'
-import { findPuzzle, nextPuzzle, SOLVED_TEXT, unlockedIds, type PuzzleDefinition } from '../puzzles/registry.ts'
+import { useEffect, useRef } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { markPuzzleSolved, useSolvedIds } from '../progress/progress.ts';
+import { findPuzzle, nextPuzzle, SOLVED_TEXT, unlockedIds, type PuzzleDefinition } from '../puzzles/registry.ts';
 
 function readMessage(root: ParentNode): string {
-  const output = root.querySelector('[data-puzzle-output]')
-  return (output?.textContent ?? '').replace(/\s+/g, ' ').trim()
+  const output = root.querySelector('[data-puzzle-output]');
+  return (output?.textContent ?? '').replace(/\s+/g, ' ').trim();
 }
 
 export function PuzzlePage() {
-  const { puzzleId } = useParams()
-  const puzzle = findPuzzle(Number(puzzleId))
-  const solvedIds = useSolvedIds()
+  const { puzzleId } = useParams();
+  const puzzle = findPuzzle(Number(puzzleId));
+  const solvedIds = useSolvedIds();
 
   if (!puzzle) {
     return (
@@ -21,10 +21,10 @@ export function PuzzlePage() {
           <Link to="/menu">Back to the menu</Link>
         </p>
       </>
-    )
+    );
   }
 
-  const unlocked = unlockedIds(solvedIds).includes(puzzle.id)
+  const unlocked = unlockedIds(solvedIds).includes(puzzle.id);
   if (!unlocked) {
     return (
       <>
@@ -34,11 +34,11 @@ export function PuzzlePage() {
           <Link to="/menu">Back to the menu</Link>
         </p>
       </>
-    )
+    );
   }
 
-  const upcoming = nextPuzzle(puzzle.id)
-  const solved = solvedIds.includes(puzzle.id)
+  const upcoming = nextPuzzle(puzzle.id);
+  const solved = solvedIds.includes(puzzle.id);
 
   return (
     <>
@@ -66,52 +66,47 @@ export function PuzzlePage() {
         <Link to="/menu">Back to the menu</Link>
       </p>
     </>
-  )
+  );
 }
 
 function PuzzleStage({ puzzle }: { puzzle: PuzzleDefinition }) {
-  const rootRef = useRef<HTMLElement>(null)
-  const Puzzle = puzzle.Component
+  const rootRef = useRef<HTMLElement>(null);
+  const Puzzle = puzzle.Component;
 
   useEffect(() => {
-    const root = rootRef.current
-    if (!root) return
+    const root = rootRef.current;
+    if (!root) return;
 
     const solveIfReady = () => {
-      if (readMessage(root) === SOLVED_TEXT) markPuzzleSolved(puzzle.id)
-    }
+      if (readMessage(root) === SOLVED_TEXT) markPuzzleSolved(puzzle.id);
+    };
 
     if (puzzle.solveWhen === 'load') {
       const observer = new MutationObserver(() => {
-        solveIfReady()
-      })
-      observer.observe(root, { subtree: true, childList: true, characterData: true })
-      solveIfReady()
-      return () => observer.disconnect()
+        solveIfReady();
+      });
+      observer.observe(root, { subtree: true, childList: true, characterData: true });
+      solveIfReady();
+      return () => observer.disconnect();
     }
 
-    let sawChange = false
-    const rememberChange = () => {
-      sawChange = true
-      queueMicrotask(solveIfReady)
-      requestAnimationFrame(solveIfReady)
-    }
-    const observer = new MutationObserver(() => {
-      if (sawChange) solveIfReady()
-    })
-    observer.observe(root, { subtree: true, childList: true, characterData: true })
-    root.addEventListener('input', rememberChange)
-    root.addEventListener('change', rememberChange)
+    const eventName = puzzle.solveWhen === 'click' ? 'click' : 'focusout';
+    // These events bubble. Listen on document so this runs after React's
+    // handler on the app root, then check once the message has been written.
+    const checkAfterEvent = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof Node) || !root.contains(target)) return;
+      setTimeout(solveIfReady, 0);
+    };
+    document.addEventListener(eventName, checkAfterEvent);
     return () => {
-      observer.disconnect()
-      root.removeEventListener('input', rememberChange)
-      root.removeEventListener('change', rememberChange)
-    }
-  }, [puzzle.id, puzzle.solveWhen])
+      document.removeEventListener(eventName, checkAfterEvent);
+    };
+  }, [puzzle.id, puzzle.solveWhen]);
 
   return (
     <section ref={rootRef}>
       <Puzzle />
     </section>
-  )
+  );
 }
